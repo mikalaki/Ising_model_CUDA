@@ -1,6 +1,12 @@
-#include "stdio.h"
-#include "stdlib.h"
-
+/*
+*       Parallels and Distributed Systems Exercise 3
+*       v0. Sequential version of Ising Model
+*       Author:Michael Karatzas
+*       AEM:9137
+*/
+#include <stdio.h>
+#include <stdlib.h>
+#include "ising.h"
 
 //Functions Declaration
 void step(int **Gptr,int **newMat, double * w , int n);
@@ -17,14 +23,10 @@ void pointer_swap(int **a , int **b);
 
   NOTE: Both matrices G and w are stored in row-major format.
 */
-
-
-
-
 void ising( int *G, double *w, int k, int n){
 
   //The second Matrix We use
-  int * newG= (int *)malloc(sizeof(int)*n*n);
+  int * newG= (int *)malloc((size_t)sizeof(int)*n*n);
 
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
@@ -34,7 +36,7 @@ void ising( int *G, double *w, int k, int n){
   //Getting the right values to the initial Lattice matrix for odd number of spots
   //Freeing memory of the second matrix from the heap to avoid memory leaks.
   if((k%2)!=0){
-    memcpy (newG, G, sizeof(int)*n*n);
+    memcpy (newG, G, (size_t)sizeof(int)*n*n);
     free(G);
   }
   else
