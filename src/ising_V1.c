@@ -1,6 +1,6 @@
 /*
 *       Parallels and Distributed Systems Exercise 3
-*       v0. Sequential version of Ising Model
+*       v0. Sequential version of isinv_V1 Model
 *       Author:Michael Karatzas
 *       AEM:9137
 */
@@ -27,41 +27,6 @@ void step_V1(int **Gptr,int **newMat, double * w , int n){
 
 }
 
-void getTheSpin(int * Lat,int * newLat, double * weights , int n, int a , int b);
-
-
-void getTheSpin(int * Lat,int * newLat, double * weights , int n, int a , int b){
-  double total=0;
-  int idxR,idxC;
-  //Getting the total for a certain spin.
-  for(int i=a-2;i<a+3;i++ ){
-    for(int j=b-2;j<b+3;j++ ){
-      if((i==a) && (j==b))
-        continue;
-
-      //using modulus arithmetic for handle the edges
-      //Getting the modulus from the remainder in negative values of Cmodulus operator
-      idxR= ((i%n)<0 )? (i%n +n) : i%n;
-      idxC= ((j%n)<0 )? (j%n +n) : j%n;
-
-      total+=Lat[ idxR*n + idxC] *weights[(2+i-a)*5 + (2+j-b)];
-    }
-  }
-
-  //Checking the conditions
-  //if (total ==0), with taking into account possible floating point errors
-  if( (total<1e-6)  &&  (total>(-1e-6)) ){
-    newLat[a*n+b]=Lat[a*n+b];
-  }
-  else if(total<0){
-    newLat[a*n+b]=-1;
-  }
-  else if(total>0){
-    newLat[a*n+b]=1;
-  }
-
-}
-
 //! Ising model evolution
 /*!
 
@@ -72,7 +37,7 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int a , int b)
 
   NOTE: Both matrices G and w are stored in row-major format.
 */
-void ising_v1( int *G, double *w, int k, int n){
+void ising_V1( int *G, double *w, int k, int n){
 
   //The second Matrix We use
   int * newG= (int *)malloc((size_t)sizeof(int)*n*n);
@@ -92,13 +57,4 @@ void ising_v1( int *G, double *w, int k, int n){
     free(newG);
 
 
-}
-
-
-
-
-void pointer_swap(int **a , int **b){
-  int * temp=*a;
-  *a=*b;
-  *b=temp;
 }

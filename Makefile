@@ -5,7 +5,7 @@
 
 SHELL := /bin/bash
 CC = gcc-7
-# MPICC = mpicc
+NVCC = nvcc
 CFLAGS = -Wall -O3
 INCLUDES = -I ./inc
 
@@ -14,8 +14,9 @@ clean:
 
 
 
-lib: ising_sequential.o
+lib: ising_sequential.o ising_V1.o
 	ar rcs lib/ising_sequential.a lib/ising_sequential.o
+	ar rcs lib/ising_V1.a lib/ising_V1.o lib/knnring_sequential.o
 
 # #	#### COMMENT OUT THE LINE BELLOW TO RUN SYNCHRONOYS MPI (ln 19 must be commented) ####
 # #	rm -f lib/knnring_mpi.a; ar rcs lib/knnring_mpi.a lib/knnring_synchronous.o lib/knnring_sequential.o
@@ -33,3 +34,6 @@ lib: ising_sequential.o
 
 ising_sequential.o:
 	$(CC) $(CFLAGS) $(INCLUDES) -c src/ising_sequential.c -o lib/ising_sequential.o
+
+ising_V1.o:
+	$(NVCC) $(CFLAGS) $(INCLUDES) -c src/ising_V1.c -o lib/ising_V1.o
