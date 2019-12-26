@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ising.h"
+#include <cuda_runtime.h>
+#include <cuda.h>
+#include <cuda_runtime_api.h>
 
 int test(int *G1,int *G2, int n );
 
@@ -33,7 +36,7 @@ int main(int argc, char const *argv[]) {
   //test for k=1 // In next version will implement it as a new function
   memcpy (sit0, init_buffer, (size_t)sizeof(int)*n*n);
 
-  isinv_V1(sit0, weights,1, n);
+  ising(sit0, weights,1, n);
 
   int *sit1 =(int *)malloc((size_t)sizeof(int)*n*n);
   FILE * fp_1 = fopen("conf-1.bin", "rb");
@@ -50,7 +53,7 @@ int main(int argc, char const *argv[]) {
 
   //Test for k=4 // In next version will implement it as a new function
   memcpy (sit0, init_buffer, (size_t)sizeof(int)*n*n);
-  isinv_V1(sit0, weights,4, n);
+  ising(sit0, weights,4, n);
 
   int *sit4 =(int *)malloc((size_t)sizeof(int)*n*n);
   FILE * fp_4 = fopen("conf-4.bin", "rb");
@@ -67,7 +70,7 @@ int main(int argc, char const *argv[]) {
 
   //Test for k=11 // In next version will implement it as a new function
   memcpy (sit0, init_buffer, (size_t)sizeof(int)*n*n);
-  isinv_V1(sit0, weights,11, n);
+  ising(sit0, weights,11, n);
 
   int *sit11 =(int *)malloc((size_t)sizeof(int)*n*n);
   FILE * fp_11 = fopen("conf-11.bin", "rb");

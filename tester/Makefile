@@ -1,10 +1,11 @@
 SHELL := /bin/bash
-CC = gcc-7
-NVCC = nvcc
+CC = gcc-5
+#NVCC = nvcc  -gencode=arch=compute_20,code=sm_21 -Wno-deprecated-gpu-targets -lcudart  -Xptxas=-v #use this flag as I own an old gpu with 2.1 compute capability
+NVCC = nvcc    -Xptxas=-v #use this flag as I own an old gpu with 2.1 compute capability
 
 
 test_sequential:
-	cd ../; make lib;
+	cd ../; make clean; make lib;
 	cp ../lib/*.a ../inc/ising.h ./;
 	$(CC) test.c ising_sequential.a -o $@
 	./test_sequential
@@ -12,8 +13,15 @@ test_sequential:
 
 
 test_v1:
-	cd ..; make lib;
+	cd ..; make clean; make lib;
 	cp ../lib/*.a ../inc/ising.h ./;
-	$(NVCC) test_v1.c ising_V1.a -o $@ -lm
+	$(NVCC) test_v1.cu ising_V1.a -o $@ -lm
 	./test_v1
 	rm test_v1
+
+test_v2:
+	cd ..; make clean; make lib;
+	cp ../lib/*.a ../inc/ising.h ./;
+	$(NVCC) test_v1.cu ising_V2.a -o $@ -lm
+	./test_v2
+	rm test_v2
