@@ -85,7 +85,6 @@ int main(int argc, char const *argv[]) {
   free(sit11);
 
 
-
 }
 
 int test(int *G1,int *G2, int n ){

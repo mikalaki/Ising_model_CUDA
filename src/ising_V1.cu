@@ -1,12 +1,13 @@
 /*
 *       Parallels and Distributed Systems Exercise 3
-*       v0. Sequential version of Ising Model
+*       v1. CUDA modified ising model ,one thread computes a magnetic moment.
 *       Author:Michael Karatzas
 *       AEM:9137
 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "essentials.h"
 #include "ising.h"
 #include "cuda.h"
 
@@ -15,8 +16,6 @@ __global__
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n);
 __device__ __forceinline__
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex);
-
-void pointer_swap(int **a , int **b);
 
 //! Ising model evolution
 /*!
@@ -35,15 +34,30 @@ void ising( int *G, double *w, int k, int n){
 
   //Allocate and Get the G Matrix in the Device
   cudaMalloc((void **)&d_G, (size_t)sizeof(int)*n*n);
+  if(   cudaMalloc((void **)&d_G, (size_t)sizeof(int)*n*n)     != cudaSuccess){
+    printf("Couldn't allocate memory in device (GPU) !");
+    exit(1);
+  }
   cudaMemcpy(d_G, G, (size_t)sizeof(int)*n*n, cudaMemcpyHostToDevice);
 
   //Allocate and Get the Weights Matrix in the Device
-  cudaMalloc((void **)&d_w, (size_t)sizeof(double)*5*5);
+  if(  cudaMalloc((void **)&d_w, (size_t)sizeof(double)*5*5)   != cudaSuccess){
+    printf("Couldn't allocate memory in device (GPU) !");
+    exit(1);
+  }
   cudaMemcpy(d_w, w, (size_t)sizeof(double)*5*5, cudaMemcpyHostToDevice);
 
   //The second Matrix We use,allocation in CPU(host) and GPU(device)
   secondG= (int *)malloc((size_t)sizeof(int)*n*n);
-  cudaMalloc((void **)&d_secondG, (size_t)sizeof(int)*n*n);
+  if(!secondG){
+    printf("Couldn't allocate memory in host (CPU) !");
+    exit(1);
+  }
+  if(cudaMalloc((void **)&d_secondG, (size_t)sizeof(int)*n*n) != cudaSuccess){
+    printf("Couldn't allocate memory in device (GPU) !");
+    exit(1);
+  }
+
 
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
@@ -66,12 +80,14 @@ void ising( int *G, double *w, int k, int n){
     free(G);
     cudaFree(d_G);
     cudaFree(d_secondG);
+    cudaFree(d_w);
   }
   else{
     //Freeing memory space I dont need from CPU and GPU to avoid memory leaks.
     free(secondG);
     cudaFree(d_G);
     cudaFree(d_secondG);
+    cudaFree(d_w);
   }
 
 
@@ -79,14 +95,13 @@ void ising( int *G, double *w, int k, int n){
 
 }
 
-__global__ 
+__global__
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
-      getTheSpin(Gptr,newMat,w,n,blockIdx.x,blockIdx.y);
+      getTheSpin(Gptr,newMat,w,n,blockIdx.y,blockIdx.x);
 }
-
+__device__ __forceinline__
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex){
-  // int rowIndex= index/n;
-  // int colIndex= index%n;
+
 
   double total=0;
   int idxR,idxC;
@@ -98,8 +113,8 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
 
       //using modulus arithmetic for handle the edges
       //Getting the modulus from the remainder in negative values of Cmodulus operator
-      idxR= (i % n + n) % n ;
-      idxC= (j % n + n) % n ;
+      idxR= (i + n) % n ;
+      idxC= (j + n) % n ;
 
       total+=Lat[ idxR*n + idxC] *weights[(2+i-rowIndex)*5 + (2+j-colIndex)];
     }
@@ -117,10 +132,4 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
     newLat[rowIndex*n+colIndex]=1;
   }
 
-}
-
-void pointer_swap(int **a , int **b){
-  int * temp=*a;
-  *a=*b;
-  *b=temp;
 }

@@ -8,11 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ising.h"
+#include "essentials.h"
 
 //Functions Declaration
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n);
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex);
-void pointer_swap(int **a , int **b);
 
 //! Ising model evolution
 /*!
@@ -77,8 +77,8 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
 
       //using modulus arithmetic for handle the edges
       //Getting the modulus from the remainder in negative values of Cmodulus operator
-      idxR= (i % n + n) % n ;
-      idxC= (j % n + n) % n ;
+      idxR= (i  + n) % n ;
+      idxC= (j  + n) % n ;
 
       total+=Lat[ idxR*n + idxC] *weights[(2+i-rowIndex)*5 + (2+j-colIndex)];
     }
@@ -96,10 +96,4 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
     newLat[rowIndex*n+colIndex]=1;
   }
 
-}
-
-void pointer_swap(int **a , int **b){
-  int * temp=*a;
-  *a=*b;
-  *b=temp;
 }
