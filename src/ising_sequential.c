@@ -28,6 +28,10 @@ void ising( int *G, double *w, int k, int n){
 
   //The second Matrix We use
   int * secondG= (int *)malloc((size_t)sizeof(int)*n*n);
+  if(!secondG){
+    printf("Couldn't allocate memory!");
+    exit(1);
+  }
 
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
