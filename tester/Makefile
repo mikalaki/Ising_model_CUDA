@@ -22,19 +22,22 @@ test_v1:
 	cd ..; make clean; make lib;
 	cp ../lib/*.a ../inc/ising.h ./;
 	$(NVCC) test_cuda.cu ising_V1.a -o $@ -lm
-	nvprof ./test_v1
+	#nvprof ./test_v1
+	./test_v1
 	rm test_v1
 
 test_v2:
 	cd ..; make clean; make lib;
 	cp ../lib/*.a ../inc/ising.h ./;
 	$(NVCC) test_cuda.cu ising_V2.a -o $@ -lm
-	nvprof ./test_v2
+	#nvprof ./test_v2
+	./test_v2
 	rm test_v2
 
 test_v3:
 	cd ..; make clean; make lib;
 	cp ../lib/*.a ../inc/ising.h ./;
 	$(NVCC) test_cuda.cu ising_V3.a -o $@ -lm
-	nvprof ./test_v3
+	#nvprof ./test_v3
+	./test_v3
 	rm test_v3
