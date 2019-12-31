@@ -1,7 +1,13 @@
+#      Parallels and Distributed Systems Exercise 3
+#			 Makefile
+#      Author:Michael Karatzas
+#      AEM:9137
+
 SHELL := /bin/bash
-CC = gcc-5
-#NVCC = nvcc  -gencode=arch=compute_20,code=sm_21 -Wno-deprecated-gpu-targets -lcudart  -Xptxas=-v #use this flag as I own an old gpu with 2.1 compute capability
-NVCC = nvcc    -Xptxas=-v #use this flag as I own an old gpu with 2.1 compute capability
+#Set your system's Cuda installation's gcc version and the flags needed for your system.
+CC = gcc#-5
+#NVCC = nvcc  -gencode=arch=compute_20,code=sm_21 -Wno-deprecated-gpu-targets -lcudart  -Xptxas=-v#use this flag as I own an old gpu with 2.1 compute capability
+NVCC = nvcc   # -Xptxas=-v #use this flag as I own an old gpu with 2.1 compute capability
 
 
 test_sequential:
