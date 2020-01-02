@@ -76,36 +76,23 @@ void ising( int *G, double *w, int k, int n){
     //Check for valid kernel configuration
 
     nextStateCalculation<<<dimGrid,dimBlock>>>(d_G,d_secondG,d_w,n);
-    cudaMemcpy(secondG,d_secondG,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
-    // //checkErrors
-    // printf("%s\n", cudaGetErrorString(cudaGetLastError()));
+    cudaDeviceSynchronize();
 
-    //Swapping the pointers between the two Matrices.
-    pointer_swap(&G,&secondG);
+    //Swapping the pointers between the two Matrices in device
+    pointer_swap(&d_G,&d_secondG);
 
-    //Update data in device after the pointer swap.
-    cudaMemcpy(d_G, G, (size_t)sizeof(int)*n*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_secondG, secondG, (size_t)sizeof(int)*n*n, cudaMemcpyHostToDevice);
+    //Passing updated values of G matrix in the CPU
+    cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
 
 
   }
 
-  //Getting the right values to the initial Lattice matrix for odd number of spots
-  if((k%2)!=0){
-    memcpy (secondG, G, (size_t)sizeof(int)*n*n);
-    //Freeing memory space I dont need from CPU and GPU to avoid memory leaks.
-    free(G);
-    cudaFree(d_G);
-    cudaFree(d_secondG);
-    cudaFree(d_w);
-  }
-  else{
-    //Freeing memory space I dont need from CPU and GPU to avoid memory leaks.
-    free(secondG);
-    cudaFree(d_G);
-    cudaFree(d_secondG);
-    cudaFree(d_w);
-  }
+  //Freeing memory space I dont need from CPU and GPU to avoid memory leaks.
+  free(secondG);
+  cudaFree(d_G);
+  cudaFree(d_secondG);
+  cudaFree(d_w);
+
 }
 __global__
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
