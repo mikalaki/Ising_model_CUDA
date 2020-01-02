@@ -17,16 +17,6 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n);
 __device__ __forceinline__
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex);
 
-//! Ising model evolution
-/*!
-
-  \param G      Spins on the square lattice             [n-by-n]
-  \param w      Weight matrix                           [5-by-5]
-  \param k      Number of iterations                    [scalar]
-  \param n      Number of lattice points per dim        [scalar]
-
-  NOTE: Both matrices G and w are stored in row-major format.
-*/
 void ising( int *G, double *w, int k, int n){
 
   int * d_G, *d_secondG;
@@ -64,7 +54,7 @@ void ising( int *G, double *w, int k, int n){
     //Swapping the pointers between the two Matrices in device
     pointer_swap(&d_G,&d_secondG);
 
-    //Passing updated values of G matrix in the CPU
+    //Passing updated values of G matrix in the CPU.
     cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
 
 

@@ -13,10 +13,9 @@
 #include "cuda_runtime.h"
 #include "cuda_runtime_api.h"
 //The max threads per block for my gpu (gt 540m) is 1024 = 32*32 (1024 are run by a single processor)
-//(preferably Set BLOCK_DIM_X and BLOCK_DIM_Y a multiple of 4 , these two being equal )
+//(Preferably:set BLOCK_DIM_X and BLOCK_DIM_Y a multiple of 4 )
 #define BLOCK_DIM_X 32
 #define BLOCK_DIM_Y 32
-//In my gpu there 2(MPs)*48(SPs)=96 sqrt(96)>9 => grid dimensions:
 #define GRID_DIM_X 9
 #define GRID_DIM_Y 9
 #define RADIUS 2
@@ -73,7 +72,7 @@ void ising( int *G, double *w, int k, int n){
     //Swapping the pointers between the two Matrices in device
     pointer_swap(&d_G,&d_secondG);
 
-    //Passing updated values of G matrix in the CPU
+    //Passing updated values of G matrix in the CPU.
     cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
 
 
@@ -180,7 +179,7 @@ int gRowIndex,int gColIndex ){
   }
 
   //Checking the conditions
-  //if (total ==0), with taking into account possible floating point errors
+  //  if (total ==0), with taking into account possible floating point errors
   if( (total<1e-6)  &&  (total>(-1e-6)) ){
     newLat[(gRowIndex)*n+(gColIndex)]=Lat[lRowIndex*(BLOCK_DIM_X+2*RADIUS)+lColIndex];
   }
