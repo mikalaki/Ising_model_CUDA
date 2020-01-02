@@ -34,7 +34,7 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
 ///Functions Definition
 void ising( int *G, double *w, int k, int n){
 
-  int * d_G, *secondG, *d_secondG;
+  int * d_G, *d_secondG;
   double * d_w;
 
   //Allocate and Get the G Matrix in the Device
@@ -51,18 +51,12 @@ void ising( int *G, double *w, int k, int n){
   }
   cudaMemcpy(d_w, w, (size_t)sizeof(double)*5*5, cudaMemcpyHostToDevice);
 
-  //The second Matrix We use,allocation in CPU(host) and GPU(device)
-  secondG= (int *)malloc((size_t)sizeof(int)*n*n);
-  if(!secondG){
-    printf("Couldn't allocate memory in host (CPU) !");
-    exit(1);
-  }
+  //The second Matrix We use,allocation only in GPU(device)
   if(cudaMalloc((void **)&d_secondG, (size_t)sizeof(int)*n*n) != cudaSuccess){
     printf("Couldn't allocate memory in device (GPU) !");
     exit(1);
   }
 
-  //check for valid Kernel Configuration
 
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
@@ -87,8 +81,7 @@ void ising( int *G, double *w, int k, int n){
 
   }
 
-  //Freeing memory space I dont need from CPU and GPU to avoid memory leaks.
-  free(secondG);
+  //Freeing memory space I dont need from GPU to avoid memory leaks.
   cudaFree(d_G);
   cudaFree(d_secondG);
   cudaFree(d_w);
