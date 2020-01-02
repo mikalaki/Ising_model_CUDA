@@ -13,8 +13,10 @@
 struct timespec start, finish;
 double elapsed;
 
-static int n[]={100,250,500,750,1000,1500,2000,3000,5000,10000,20000,40000,75000,100000,200000,500000,1000000};//17
-static int k[]={1, 5, 10, 15 , 25 , 50 , 100 , 50 , 100 , 250 ,500, 1000,2000};//13
+static int n[]={100,250,500,750,1000,1500,2000,3000,5000,10000,20000,40000,75000,100000,200000,500000,1000000};
+static int k[]={1, 5, 10, 15 , 25 , 50 , 100 , 50 , 100 , 250 ,500, 1000,2000};
+// static int n[]={1000};
+// static int k[]={20};
 
 int main(int argc, char const *argv[]) {
 
@@ -33,8 +35,8 @@ int main(int argc, char const *argv[]) {
   // clock_t t;
   // double time_taken;
 
-  for (int i = 0; i < 17; i++) {
-    for (int j = 0; j < 13; j++) {
+  for (int i = 0; i < 1; i++) {
+    for (int j = 0; j < 1; j++) {
       FILE *pointerToFile;
       int * sample;
 
@@ -53,8 +55,8 @@ int main(int argc, char const *argv[]) {
       elapsed = (finish.tv_sec - start.tv_sec);
       elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
 
-      pointerToFile=fopen("datav1.csv","a");//////HHHHEEERREE
-      fprintf(pointerToFile,"%d,%d,%lf\n",n[i],k[j],elapsed);///// HHHHHEEEERREEEE
+      pointerToFile=fopen("datav1.csv","a");
+      fprintf(pointerToFile,"%d,%d,%lf\n",n[i],k[j],elapsed);
       printf("Ising model evolution for n=%d, k=%d ,took %lf seconds! \n",n[i],k[j], elapsed );
       free(sample);
     }

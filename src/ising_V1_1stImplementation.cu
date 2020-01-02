@@ -10,8 +10,6 @@
 #include "essentials.h"
 #include "ising.h"
 #include "cuda.h"
-#define BLOCK_DIM_X 16
-#define BLOCK_DIM_Y 16
 
 //Functions Declaration
 __global__
@@ -45,16 +43,12 @@ void ising( int *G, double *w, int k, int n){
     exit(1);
   }
 
-  //grid that matches the ising Model (gridDimX*BLOCK_DIM_X <=n,gridDimY*BLOCK_DIM_Y <=n )
-  //configuration for 1 thread per moment.
-  int gridDimX= (n+BLOCK_DIM_X -1)/BLOCK_DIM_X;
-  int gridDimY= (n+BLOCK_DIM_Y -1)/BLOCK_DIM_Y;
-  dim3 dimGrid(gridDimX,gridDimY);
-  dim3 dimBlock(BLOCK_DIM_X,BLOCK_DIM_Y);
+
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
-    //calling the nextStateCalculation() kernel
-    nextStateCalculation<<<dimGrid,dimBlock>>>(d_G,d_secondG,d_w,n);
+    //grid that matches the ising Model
+    dim3 dimGrid(n,n);
+    nextStateCalculation<<<dimGrid,1>>>(d_G,d_secondG,d_w,n);
     cudaDeviceSynchronize();
 
     //Swapping the pointers between the two Matrices in device
@@ -75,13 +69,7 @@ void ising( int *G, double *w, int k, int n){
 
 __global__
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
-    //The unigue global indixes of the threads.
-    int index_X = threadIdx.x +blockDim.x*blockIdx.x;
-    int index_Y = threadIdx.y +blockDim.y*blockIdx.y;
-
-    //getting rid of the odd trheads
-    if((index_X < n) &&(index_Y < n) )
-      getTheSpin(Gptr,newMat,w,n,index_X,index_Y);
+      getTheSpin(Gptr,newMat,w,n,blockIdx.y,blockIdx.x);
 }
 __device__ __forceinline__
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex){

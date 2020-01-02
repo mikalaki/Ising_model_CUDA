@@ -14,10 +14,10 @@
 #include "cuda_runtime_api.h"
 //The max threads per block for my gpu (gt 540m) is 1024 = 32*32 (1024 are run by a single processor)
 //(Preferably:set BLOCK_DIM_X and BLOCK_DIM_Y a multiple of 4)
-#define BLOCK_DIM_X 32
-#define BLOCK_DIM_Y 32
-#define GRID_DIM_X 9
-#define GRID_DIM_Y 9
+#define BLOCK_DIM_X 24
+#define BLOCK_DIM_Y 24
+#define GRID_DIM_X 4
+#define GRID_DIM_Y 4
 
 //Functions Declaration
 __global__
@@ -54,17 +54,13 @@ void ising( int *G, double *w, int k, int n){
     exit(1);
   }
 
-
+  //grid in order one thread to compute a block of moments.
+  //dim3 BlockDim(BLOCK_SIZE_1D,BLOCK_SIZE_1D);
+  dim3 dimBlock(BLOCK_DIM_X,BLOCK_DIM_Y);
+  dim3 dimGrid(GRID_DIM_X,GRID_DIM_Y);
+  
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
-
-
-    //grid in order one thread to compute a block of moments.
-    //dim3 BlockDim(BLOCK_SIZE_1D,BLOCK_SIZE_1D);
-
-    dim3 dimBlock(BLOCK_DIM_X,BLOCK_DIM_Y);
-    dim3 dimGrid(GRID_DIM_X,GRID_DIM_Y);
-
 
     nextStateCalculation<<<dimGrid,dimBlock>>>(d_G,d_secondG,d_w,n);
     cudaDeviceSynchronize();
