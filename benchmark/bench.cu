@@ -35,8 +35,8 @@ int main(int argc, char const *argv[]) {
   // clock_t t;
   // double time_taken;
 
-  for (int i = 0; i < 1; i++) {
-    for (int j = 0; j < 1; j++) {
+  for (int i = 0; i < 9; i++) {
+    for (int j = 0; j < 10; j++) {
       FILE *pointerToFile;
       int * sample;
 
