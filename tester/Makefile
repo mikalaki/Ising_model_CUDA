@@ -1,13 +1,14 @@
 #      Parallels and Distributed Systems Exercise 3
-#			 Makefile
+#			 Makefile for tester
 #      Author:Michael Karatzas
 #      AEM:9137
 
 SHELL := /bin/bash
 #Set your system's Cuda installation's gcc version and the flags needed for your system.
+#I use gcc-5 because is the gcc version my CUDA version(8.0) supports,in order all of the project's C code get compiled by the same compiler.
 CC = gcc#-5
 #NVCC = nvcc  -gencode=arch=compute_20,code=sm_21 -Wno-deprecated-gpu-targets -lcudart  -Xptxas=-v#use this flag as I own an old gpu with 2.1 compute capability
-NVCC = nvcc   # -Xptxas=-v #use this flag as I own an old gpu with 2.1 compute capability
+NVCC = nvcc
 
 
 test_sequential:

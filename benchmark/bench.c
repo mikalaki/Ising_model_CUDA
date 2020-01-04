@@ -14,7 +14,7 @@ struct timespec start, finish;
 double elapsed;
 
 static int n[]={100,250,500,750,1000,1500,2000,3000,5000};//9
-static int k[]={1, 5, 10, 15 , 25 , 50 , 100 , 50 , 100 , 250 };//10
+static int k[]={1, 5, 10 , 25 ,40, 50 , 100 };//7
 // static int n[]={1000};
 // static int k[]={20};
 
@@ -36,7 +36,7 @@ int main(int argc, char const *argv[]) {
   // double time_taken;
 
   for (int i = 0; i < 9; i++) {
-    for (int j = 0; j < 10; j++) {
+    for (int j = 0; j < 7; j++) {
       FILE *pointerToFile;
       int * sample;
 
@@ -55,7 +55,7 @@ int main(int argc, char const *argv[]) {
       elapsed = (finish.tv_sec - start.tv_sec);
       elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
 
-      pointerToFile=fopen("datav1.csv","a");
+      pointerToFile=fopen("datav0.csv","a");
       fprintf(pointerToFile,"%d,%d,%lf\n",n[i],k[j],elapsed);
       printf("Ising model evolution for n=%d, k=%d ,took %lf seconds! \n",n[i],k[j], elapsed );
       free(sample);

@@ -15,6 +15,4 @@
 */
 void ising( int *G, double *w, int k, int n);
 
-void ising_V1( int *G, double *w, int k, int n);
-
 #endif

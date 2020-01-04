@@ -14,16 +14,6 @@
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n);
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex);
 
-//! Ising model evolution
-/*!
-
-  \param G      Spins on the square lattice             [n-by-n]
-  \param w      Weight matrix                           [5-by-5]
-  \param k      Number of iterations                    [scalar]
-  \param n      Number of lattice points per dim        [scalar]
-
-  NOTE: Both matrices G and w are stored in row-major format.
-*/
 void ising( int *G, double *w, int k, int n){
 
   //The second Matrix We use
@@ -50,15 +40,11 @@ void ising( int *G, double *w, int k, int n){
   else
     free(secondG);
 
-
-
-
-
 }
-
+//Function that scans the lattice
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
 
-  //scanning the Lattice
+  //Scanning the Lattice
   for(int i=0; i<n; i++){
     for(int j=0;j<n;j++){
       getTheSpin(Gptr,newMat,w,n,i,j);
@@ -66,29 +52,31 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
   }
 
 }
-
+//Function that computes the next spin of a certain point
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex){
   // int rowIndex= index/n;
   // int colIndex= index%n;
 
   double total=0;
   int idxR,idxC;
-  //Getting the total for a certain spin.
+
+  //Calculating the Total influence for a certain spot.
   for(int i=rowIndex-2;i<rowIndex+3;i++ ){
     for(int j=colIndex-2;j<colIndex+3;j++ ){
       if((i==rowIndex) && (j==colIndex))
         continue;
 
-      //using modulus arithmetic for handle the edges
-      //Getting the modulus from the remainder in negative values of Cmodulus operator
+      //using modulus arithmetic for handle the boundaries' conditions
+      //Getting the positive modulus
       idxR= (i  + n) % n ;
       idxC= (j  + n) % n ;
 
+      //Total influence update
       total+=Lat[ idxR*n + idxC] *weights[(2+i-rowIndex)*5 + (2+j-colIndex)];
     }
   }
 
-  //Checking the conditions
+  //Checking the conditions in order to get the next state spin
   //if (total ==0), with taking into account possible floating point errors
   if( (total<1e-6)  &&  (total>(-1e-6)) ){
     newLat[rowIndex*n+colIndex]=Lat[rowIndex*n+colIndex];
