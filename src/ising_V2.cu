@@ -71,7 +71,8 @@ void ising( int *G, double *w, int k, int n){
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
 
-    //no_changes_flag=1, indicates nochange in the lattice, if there are changes , next kernel will update its value.
+    /*no_changes_flag=1, indicates no change in the lattice, if there are changes
+    nextStateCalculation() kernel will update its value.*/
     no_changes_flag=1;
     cudaMemcpy(d_no_changes_flag, &no_changes_flag, (size_t)sizeof(int), cudaMemcpyHostToDevice);
 

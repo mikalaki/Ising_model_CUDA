@@ -28,7 +28,8 @@ void ising( int *G, double *w, int k, int n){
 
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
-    //no_changes_flag=1, indicates nochange in the lattice, if there are changes , next function will update its value.
+    /*no_changes_flag=1, indicates no change in the lattice, if there are changes
+    nextStateCalculation() function will update its value.*/
     no_changes_flag=1;
 
     nextStateCalculation(G,secondG,w,n,&no_changes_flag);
