@@ -22,19 +22,28 @@
 
 //Functions'-kernels' Declarations
 __global__
-void nextStateCalculation(int *Gptr,int *newMat, double * w , int n);
+void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag);
 
 __device__ __forceinline__
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int lRowIndex,
-  int lColIndex,int gRowIndex,int gColIndex);
+  int lColIndex,int gRowIndex,int gColIndex, int * flag);
 
 
 
 ///Functions'-kernels' Definitions
 void ising( int *G, double *w, int k, int n){
 
-  int * d_G,*d_secondG;
+  //Flag for indicate if there was no changes in the lattice during a step,in order to terminate the evolving.
+  int no_changes_flag;
+
+  int * d_G,*d_secondG, *d_no_changes_flag;
   double * d_w;
+
+  //Allocate memory for the no change flag in the Device
+  if(   cudaMalloc(&d_no_changes_flag, (size_t)sizeof(int))    != cudaSuccess){
+    printf("Couldn't allocate memory in device (GPU) !");
+    exit(1);
+  }
 
   //Allocate memory and "transfer" the G Matrix in the Device
   if(   cudaMalloc((void **)&d_G, (size_t)sizeof(int)*n*n)     != cudaSuccess){
@@ -63,17 +72,30 @@ void ising( int *G, double *w, int k, int n){
 
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
+
+    //no_changes_flag=1, indicates nochange in the lattice, if there are changes , next kernel will update its value.
+    no_changes_flag=1;
+    cudaMemcpy(d_no_changes_flag, &no_changes_flag, (size_t)sizeof(int), cudaMemcpyHostToDevice);
+
+
     //calling the nextStateCalculation() kernel
-    nextStateCalculation<<<dimGrid,dimBlock>>>(d_G,d_secondG,d_w,n);
+    nextStateCalculation<<<dimGrid,dimBlock>>>(d_G,d_secondG,d_w,n,d_no_changes_flag);
     cudaDeviceSynchronize();
 
     //Swapping the pointers between the two Matrices in device
     pointer_swap(&d_G,&d_secondG);
 
-    //Passing updated values of G matrix in the CPU.
-    cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
+    //value of no_chane_flag returns to host
+    cudaMemcpy(&no_changes_flag, d_no_changes_flag,  (size_t)sizeof(int), cudaMemcpyDeviceToHost);
+    //If there are no changes in the lattice we stop evolving the model
+    if(no_changes_flag){
+      break;
+    }
 
   }
+
+  //Passing updated values of G matrix in the CPU.
+  cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
 
   //Freeing memory space I dont need from GPU to avoid memory leaks.
   cudaFree(d_G);
@@ -82,7 +104,7 @@ void ising( int *G, double *w, int k, int n){
 
 }
 __global__
-void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
+void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag){
       /* The part of the G matrix that is needed to be read in the block shared memory
       are the spots that their spin is going to get computed by the block
       and two offset spot around every edgy spot.  */
@@ -174,9 +196,9 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
 
           if((i<n)&&(j<n)){
             if((BLOCK_DIM_Y>5) && (BLOCK_DIM_X>5))
-              getTheSpin(sharedGpart,newMat,  w_shared,n,lIndex_Y, lIndex_X,i,j);
+              getTheSpin(sharedGpart,newMat,  w_shared,n,lIndex_Y, lIndex_X,i,j,flag);
             else
-              getTheSpin(sharedGpart,newMat,  w,n,lIndex_Y, lIndex_X,i,j);
+              getTheSpin(sharedGpart,newMat,  w,n,lIndex_Y, lIndex_X,i,j,flag);
 
           }
 
@@ -188,7 +210,7 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
 }
 __device__ __forceinline__
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int lRowIndex,int lColIndex,
-int gRowIndex,int gColIndex ){
+int gRowIndex,int gColIndex, int * flag ){
 
   double total=0;
   //Calculating the Total influence for a certain spot, by scanning the block shared part of G.
@@ -209,9 +231,15 @@ int gRowIndex,int gColIndex ){
     newLat[(gRowIndex)*n+(gColIndex)]=Lat[lRowIndex*(BLOCK_DIM_X+2*RADIUS)+lColIndex];
   }
   else if(total<0){
+    //Checking if there is change in this certain spot
+    if(Lat[lRowIndex*(BLOCK_DIM_X+2*RADIUS)+lColIndex]!=1)
+      *flag=0;
     newLat[(gRowIndex)*n+(gColIndex)]=-1;
   }
   else if(total>0){
+    //Checking if there is change in this certain spot
+    if(Lat[lRowIndex*(BLOCK_DIM_X+2*RADIUS)+lColIndex]!=1)
+      *flag=0;
     newLat[(gRowIndex)*n+(gColIndex)]=1;
   }
 

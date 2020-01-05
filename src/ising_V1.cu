@@ -17,16 +17,28 @@ in order to have one thread per moment */
 
 //Functions'-Kernels Declaration
 __global__
-void nextStateCalculation(int *Gptr,int *newMat, double * w , int n);
+void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag);
 __device__ __forceinline__
-void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex);
+void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,
+  int colIndex, int * flag);
 
 
 ///Functions'-kernels' Definitions
 void ising( int *G, double *w, int k, int n){
 
-  int * d_G, *d_secondG;
+  //Flag for indicate if there was no changes in the lattice during a step,in order to terminate the evolving.
+  int no_changes_flag;
+
+  int * d_G, *d_secondG, *d_no_changes_flag;
   double * d_w;
+
+
+  //Allocate memory for the no change flag in the Device
+  if(   cudaMalloc(&d_no_changes_flag, (size_t)sizeof(int))    != cudaSuccess){
+    printf("Couldn't allocate memory in device (GPU) !");
+    exit(1);
+  }
+
 
   //Allocate memory and "transfer" the G Matrix in the Device
   cudaMalloc((void **)&d_G, (size_t)sizeof(int)*n*n);
@@ -60,20 +72,33 @@ void ising( int *G, double *w, int k, int n){
   dim3 dimGrid(gridDimX,gridDimY);
   dim3 dimBlock(BLOCK_DIM_X,BLOCK_DIM_Y);
 
+
   //Evolving the model for k steps
   for(int i=0 ; i<k ;i++){
+
+    //no_changes_flag=1, indicates nochange in the lattice, if there are changes , next kernel will update its value.
+    no_changes_flag=1;
+    cudaMemcpy(d_no_changes_flag, &no_changes_flag, (size_t)sizeof(int), cudaMemcpyHostToDevice);
+
     //calling the nextStateCalculation() kernel
-    nextStateCalculation<<<dimGrid,dimBlock>>>(d_G,d_secondG,d_w,n);
+    nextStateCalculation<<<dimGrid,dimBlock>>>(d_G,d_secondG,d_w,n,d_no_changes_flag);
     cudaDeviceSynchronize();
 
     //Swapping the pointers between the two Matrices in device
     pointer_swap(&d_G,&d_secondG);
 
-    //Passing updated values of G matrix in the CPU.
-    cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
-
+    //The host get the value if there are no changes in the device
+    cudaMemcpy(&no_changes_flag, d_no_changes_flag,  (size_t)sizeof(int), cudaMemcpyDeviceToHost);
+    //If there are no changes in the lattice we stop evolving the model
+    if(no_changes_flag){
+      break;
+    }
+    
 
   }
+  //Passing updated values of G matrix in the CPU.
+  cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
+
 
   //Freeing memory space I dont need from GPU to avoid memory leaks.
   cudaFree(d_G);
@@ -83,7 +108,7 @@ void ising( int *G, double *w, int k, int n){
 }
 
 __global__
-void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
+void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag){
     //The unigue global indixes of the threads.
     int index_X = threadIdx.x +blockDim.x*blockIdx.x;
     int index_Y = threadIdx.y +blockDim.y*blockIdx.y;
@@ -92,11 +117,11 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n){
     if((index_X < n) &&(index_Y < n) ){
 
       //Get each thread calcute its spot
-      getTheSpin(Gptr,newMat,w,n,index_X,index_Y);
+      getTheSpin(Gptr,newMat,w,n,index_X,index_Y, flag);
     }
 }
 __device__ __forceinline__
-void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex){
+void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,int colIndex, int * flag){
 
 
   double total=0;
@@ -124,9 +149,13 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
     newLat[rowIndex*n+colIndex]=Lat[rowIndex*n+colIndex];
   }
   else if(total<0){
+    if(Lat[rowIndex*n+colIndex]!=-1)
+      *flag=0;
     newLat[rowIndex*n+colIndex]=-1;
   }
   else if(total>0){
+    if(Lat[rowIndex*n+colIndex]!=1)
+      *flag=0;
     newLat[rowIndex*n+colIndex]=1;
   }
 
