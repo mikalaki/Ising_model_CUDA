@@ -1,6 +1,6 @@
 /*
 *       Parallels and Distributed Systems Exercise 3
-*       v2. CUDA modified ising model ,grid and block computes the magnetic moments.
+*       v2. CUDA modified ising model evolution ,grid and block computes the magnetic moments.
 *       Author:Michael Karatzas
 *       AEM:9137
 */
@@ -12,7 +12,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cuda_runtime_api.h"
-//The max threads per block for my gpu (gt 540m) is 1024 = 32*32 (1024 are run by a single processor)
+//The max threads per block for my gpu (gt 540m) is 1024 so it must be BLOCK_DIM_X* BLOCK_DIM_Y<=1024
 //(Preferably:set BLOCK_DIM_X and BLOCK_DIM_Y a multiple of 4)
 #define BLOCK_DIM_X 24
 #define BLOCK_DIM_Y 24
@@ -51,7 +51,7 @@ void ising( int *G, double *w, int k, int n){
   }
   cudaMemcpy(d_G, G, (size_t)sizeof(int)*n*n, cudaMemcpyHostToDevice);
 
-  //Allocate memory and "transfer" the Weights Matrix in the Device
+  //Allocate memory and "transfer" the Weights' Matrix in the Device
   if(  cudaMalloc((void **)&d_w, (size_t)sizeof(double)*5*5)   != cudaSuccess){
     printf("Couldn't allocate memory in device (GPU) !");
     exit(1);
@@ -64,7 +64,7 @@ void ising( int *G, double *w, int k, int n){
     exit(1);
   }
 
-  //grid and block dimensions in order one thread to compute a block of moments.
+  //grid and block dimensions in order one thread to compute a set of moments.
   dim3 dimBlock(BLOCK_DIM_X,BLOCK_DIM_Y);
   dim3 dimGrid(GRID_DIM_X,GRID_DIM_Y);
 
@@ -83,7 +83,7 @@ void ising( int *G, double *w, int k, int n){
     //Swapping the pointers between the two Matrices in device
     pointer_swap(&d_G,&d_secondG);
 
-    //value of no_chane_flag returns to host
+    //The host get the value of the no changes flag as indication if no changes happened during the step.
     cudaMemcpy(&no_changes_flag, d_no_changes_flag,  (size_t)sizeof(int), cudaMemcpyDeviceToHost);
     //If there are no changes in the lattice we stop evolving the model
     if(no_changes_flag){
@@ -92,7 +92,7 @@ void ising( int *G, double *w, int k, int n){
 
   }
 
-  //Passing updated values of G matrix in the CPU.
+  //Passing updated values of G matrix in the host(CPU).
   cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
 
 
@@ -148,6 +148,7 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,
   if( (total<1e-6)  &&  (total>(-1e-6)) ){
     newLat[rowIndex*n+colIndex]=Lat[rowIndex*n+colIndex];
   }
+  //if change in a certain spot happens we update no change flag's value into 0.
   else if(total<0){
     //Checking if there is change in this certain spot
     if(Lat[rowIndex*n+colIndex]!=1)

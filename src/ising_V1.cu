@@ -1,6 +1,6 @@
 /*
 *       Parallels and Distributed Systems Exercise 3
-*       v1. CUDA modified ising model ,one thread computes a magnetic moment.
+*       v1. CUDA modified ising model evolution ,one thread computes a magnetic moment.
 *       Author:Michael Karatzas
 *       AEM:9137
 */
@@ -15,7 +15,7 @@ in order to have one thread per moment */
 #define BLOCK_DIM_X 16
 #define BLOCK_DIM_Y 16
 
-//Functions'-Kernels Declaration
+//Functions'-Kernels' Declaration
 __global__
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag);
 __device__ __forceinline__
@@ -33,14 +33,14 @@ void ising( int *G, double *w, int k, int n){
   double * d_w;
 
 
-  //Allocate memory for the no change flag in the Device
+  //Allocate memory for the no changes flag in the Device
   if(   cudaMalloc(&d_no_changes_flag, (size_t)sizeof(int))    != cudaSuccess){
     printf("Couldn't allocate memory in device (GPU) !");
     exit(1);
   }
 
 
-  //Allocate memory and "transfer" the G Matrix in the Device
+  //Allocate memory and "transfer" the given G Matrix in the Device
   cudaMalloc((void **)&d_G, (size_t)sizeof(int)*n*n);
   if(   cudaMalloc((void **)&d_G, (size_t)sizeof(int)*n*n)     != cudaSuccess){
     printf("Couldn't allocate memory in device (GPU) !");
@@ -48,7 +48,7 @@ void ising( int *G, double *w, int k, int n){
   }
   cudaMemcpy(d_G, G, (size_t)sizeof(int)*n*n, cudaMemcpyHostToDevice);
 
-  //Allocate memory and "transfer" the Weights Matrix in the Device
+  //Allocate memory and "transfer" the Weights' Matrix in the Device
   if(  cudaMalloc((void **)&d_w, (size_t)sizeof(double)*5*5)   != cudaSuccess){
     printf("Couldn't allocate memory in device (GPU) !");
     exit(1);
@@ -64,7 +64,7 @@ void ising( int *G, double *w, int k, int n){
   /*grid that matches the ising Model (gridDimX*BLOCK_DIM_X <=n,gridDimY*BLOCK_DIM_Y <=n )
   configuration for 1 thread per moment.*/
 
-  //Calculating the grid dimensions.
+  //Calculating the grid dimensions, in order to match the ising model.
   int gridDimX= (n+BLOCK_DIM_X -1)/BLOCK_DIM_X;
   int gridDimY= (n+BLOCK_DIM_Y -1)/BLOCK_DIM_Y;
 
@@ -88,7 +88,7 @@ void ising( int *G, double *w, int k, int n){
     //Swapping the pointers between the two Matrices in device
     pointer_swap(&d_G,&d_secondG);
 
-    //The host get the value if there are no changes in the device
+    //The host get the value of the no changes flag as indication if no changes happened during the step.
     cudaMemcpy(&no_changes_flag, d_no_changes_flag,  (size_t)sizeof(int), cudaMemcpyDeviceToHost);
     //If there are no changes in the lattice we stop evolving the model
     if(no_changes_flag){
@@ -97,7 +97,7 @@ void ising( int *G, double *w, int k, int n){
 
 
   }
-  //Passing updated values of G matrix in the CPU.
+  //Passing updated values of G matrix in the host(CPU).
   cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
 
 
@@ -117,7 +117,7 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag)
     //getting rid of the odd trheads
     if((index_X < n) &&(index_Y < n) ){
 
-      //Get each thread calcute its spot
+      //Get each thread calcute spin of its spot
       getTheSpin(Gptr,newMat,w,n,index_X,index_Y, flag);
     }
 }
@@ -145,16 +145,19 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
   }
 
   //Checking the conditions in order to get the next state spin
-  //if (total ==0), with taking into account possible floating point errors
+  //if (total ==0), taking into account possible floating point errors
   if( (total<1e-6)  &&  (total>(-1e-6)) ){
     newLat[rowIndex*n+colIndex]=Lat[rowIndex*n+colIndex];
   }
+  //if change in a certain spot happens we update no changes flag's value into 0.
   else if(total<0){
+    //Checking if there is change in this certain spot
     if(Lat[rowIndex*n+colIndex]!=-1)
       *flag=0;
     newLat[rowIndex*n+colIndex]=-1;
   }
   else if(total>0){
+    //Checking if there is change in this certain spot
     if(Lat[rowIndex*n+colIndex]!=1)
       *flag=0;
     newLat[rowIndex*n+colIndex]=1;

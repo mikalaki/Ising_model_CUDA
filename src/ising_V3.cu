@@ -1,6 +1,6 @@
 /*
 *       Parallels and Distributed Systems Exercise 3
-*       v3. CUDA modified ising model ,each block use block threads shared memory.
+*       v3. CUDA modified ising model evolution,each block use block threads' shared memory.
 *       Author:Michael Karatzas
 *       AEM:9137
 */
@@ -12,8 +12,8 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cuda_runtime_api.h"
-//The max threads per block for my gpu (gt 540m) is 1024 = 32*32 (1024 are run by a single processor)
-//(Preferably:set BLOCK_DIM_X and BLOCK_DIM_Y a multiple of 4 )
+//The max threads per block for my gpu (gt 540m) is 1024 so it must be BLOCK_DIM_X* BLOCK_DIM_Y<=1024
+//(Preferably:set BLOCK_DIM_X and BLOCK_DIM_Y a multiple of 4)
 #define BLOCK_DIM_X 24
 #define BLOCK_DIM_Y 24
 #define GRID_DIM_X 4
@@ -39,7 +39,7 @@ void ising( int *G, double *w, int k, int n){
   int * d_G,*d_secondG, *d_no_changes_flag;
   double * d_w;
 
-  //Allocate memory for the no change flag in the Device
+  //Allocate memory for the no changes flag in the Device
   if(   cudaMalloc(&d_no_changes_flag, (size_t)sizeof(int))    != cudaSuccess){
     printf("Couldn't allocate memory in device (GPU) !");
     exit(1);
@@ -65,7 +65,7 @@ void ising( int *G, double *w, int k, int n){
     exit(1);
   }
 
-  //block and grid dimensions
+  //Setting block's and grid's dimensions
   dim3 dimBlock(BLOCK_DIM_X,BLOCK_DIM_Y);
   dim3 dimGrid(GRID_DIM_X,GRID_DIM_Y);
 
@@ -86,7 +86,7 @@ void ising( int *G, double *w, int k, int n){
     //Swapping the pointers between the two Matrices in device
     pointer_swap(&d_G,&d_secondG);
 
-    //value of no_chane_flag returns to host
+    //The host get the value of the no changes flag as indication if no changes happened during the step.
     cudaMemcpy(&no_changes_flag, d_no_changes_flag,  (size_t)sizeof(int), cudaMemcpyDeviceToHost);
     //If there are no changes in the lattice we stop evolving the model
     if(no_changes_flag){
@@ -95,10 +95,10 @@ void ising( int *G, double *w, int k, int n){
 
   }
 
-  //Passing updated values of G matrix in the CPU.
+  //Passing updated values of G matrix in the host(CPU).
   cudaMemcpy(G,d_G,(size_t)sizeof(int)*n*n,cudaMemcpyDeviceToHost);
 
-  //Freeing memory space I dont need from GPU to avoid memory leaks.
+  //Freeing memory space I don't need from GPU to avoid memory leaks.
   cudaFree(d_G);
   cudaFree(d_secondG);
   cudaFree(d_w);
@@ -108,14 +108,18 @@ __global__
 void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag){
       /* The part of the G matrix that is needed to be read in the block shared memory
       are the spots that their spin is going to get computed by the block
-      and two offset spot around every edgy spot.  */
+      and two "offset" spot around every edgy spot, that will be needed for the spin
+      computation as they are neighbots of the edgy spots  */
 
       //The part of the G matrix that will pass in the shared memory.
       __shared__ int sharedGpart[(BLOCK_DIM_X+2*RADIUS)  *  (BLOCK_DIM_Y+2*RADIUS)];
+
+      //The number of columns of the shared G part
       int sharedNcols=(BLOCK_DIM_X+2*RADIUS) ;
 
-
+      //matrix to store the shared weight matrices
       __shared__ double w_shared[25];
+
       //The step of each thread
       int strideX = blockDim.x *gridDim.x ;
       int strideY = blockDim.y *gridDim.y ;
@@ -128,14 +132,14 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag)
       int lIndex_X=threadIdx.x+RADIUS;//local(in the block) x index
       int lIndex_Y=threadIdx.y+RADIUS;//local(in the block) y index
 
-      //Accessing the spins in the global lattice and "transfer" them in the shared matrix.
+      //Accessing the spins in the global lattice and pass them in the shared matrix.
       for(int i=gIndex_Y; i<n +RADIUS ;i+=strideY){
         for(int j=gIndex_X; j<n +RADIUS;j+=strideX){
 
           //Every thread read its own element in shared memory
           sharedGpart[lIndex_Y*sharedNcols+lIndex_X]=Gptr[( (i + n)%n )*n + ( (j + n)%n )];
 
-          //Accessing and read read in shared memory the 2 left and 2 right offset elements on each row
+          //Accessing and read read in shared memory the 2 left and 2 right "offset" elements on each row
           if((threadIdx.x)<RADIUS){
             int sharedGAccessorX= (lIndex_Y)*sharedNcols+(lIndex_X -RADIUS);
             int GAccessorX=( (i + n)%n )*n+ ( ( (j-RADIUS)  + n) % n);
@@ -145,31 +149,31 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag)
             GAccessorX=( (i + n)%n )*n+( ( (j+BLOCK_DIM_X)  + n) % n);
             sharedGpart[sharedGAccessorX]=Gptr[GAccessorX];
 
-            //Accessing and read in shared memory "corner" offset elements(each corner has 4 elements)
+            //Accessing and read in shared memory "corner offset" elements(each corner has 4 elements)
             if((threadIdx.y)<RADIUS){
-              //1st corner (4 spots up and left)
+              //1st corner (4 points, up and left)
               int sharedDiagAccessorX= (lIndex_Y -RADIUS)*sharedNcols +(lIndex_X-RADIUS);
               int GDiagAccessorX=( ( (i-RADIUS)  + n) % n)*n+( ( (j-RADIUS)  + n) % n);
               sharedGpart[sharedDiagAccessorX]=Gptr[GDiagAccessorX];
 
-              //2nd diagonial (4 spots down and left)
+              //2nd diagonial (4 points, down and left)
               sharedDiagAccessorX= (lIndex_Y+BLOCK_DIM_Y)*sharedNcols +(lIndex_X-RADIUS);
               GDiagAccessorX=( ( (i+BLOCK_DIM_Y)  + n) % n)*n+( ( (j-RADIUS)  + n) % n);
               sharedGpart[sharedDiagAccessorX]=Gptr[GDiagAccessorX];
 
-              //3rd corner (4 spots down and right)
+              //3rd corner (4 points, down and right)
               sharedDiagAccessorX= (lIndex_Y+BLOCK_DIM_Y)*sharedNcols +(lIndex_X+BLOCK_DIM_X);
               GDiagAccessorX=( ( (i+BLOCK_DIM_Y)  + n) % n)*n+( ( (j+BLOCK_DIM_X)  + n) % n);
               sharedGpart[sharedDiagAccessorX]=Gptr[GDiagAccessorX];
 
-              //4rd diagonial (4 spots up and right)
+              //4rd diagonial (4 points, up and right)
               sharedDiagAccessorX= (lIndex_Y -RADIUS)*sharedNcols+(lIndex_X+BLOCK_DIM_X);
               GDiagAccessorX=( ( (i-RADIUS)  + n) % n)*n+( ( (j+BLOCK_DIM_X)  + n) % n);
               sharedGpart[sharedDiagAccessorX]=Gptr[GDiagAccessorX];
             }
           }
 
-            //Accessing and read read in shared memory the 2 up and 2 bottom offset elements on each row
+          //Accessing and read read in shared memory the 2 top and 2 bottom "offset" elements on each row
           if((threadIdx.y)<RADIUS){
             int sharedGAccessorY= (lIndex_Y-RADIUS)*sharedNcols+lIndex_X;
             int GAccessorY=( ( (i-RADIUS)  + n) % n)*n+( (j + n)%n );
@@ -180,11 +184,11 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag)
             sharedGpart[sharedGAccessorY]=Gptr[GAccessorY];
           }
 
-          /*Ιf (BLOCK_DIM_Y>5) && (BLOCK_DIM_X>5),we use shared memory  also for the weights matrix,
-          I dont implement it for smaller dimensions, because the benefit is very small anyway , it will
-          make our code more complex , we choose BLOCK_DIM_X = BLOCK_DIM_Y =24 and BLOCK_DIM_X<5 or
-          BLOCK_DIM_Y<5 aren't used in practice.  */
-          if((BLOCK_DIM_Y>5) && (BLOCK_DIM_X>5)){
+          /*Ιf (BLOCK_DIM_Y>=5) && (BLOCK_DIM_X>=5),we use shared memory  also for the weights matrix,
+          I didn't implement it for smaller dimensions, because the benefit is very small anyway and it will
+          make our code more complex .Also we choose BLOCK_DIM_X = BLOCK_DIM_Y =24 and BLOCK_DIM_X<5 or
+          BLOCK_DIM_Y<5 aren't used in practice, so WE get the small benefit by transfering the weights' matrix.  */
+          if((BLOCK_DIM_Y>=5) && (BLOCK_DIM_X>=5)){
             if(threadIdx.x<5 &&threadIdx.y<5)
               w_shared[threadIdx.x*5+ threadIdx.y]=w[threadIdx.x*5+ threadIdx.y];
           }
@@ -192,19 +196,19 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n, int * flag)
 
 
           //Here we synchronize the block threads in order Shared G values are
-          //updated for each thread
+          //updated for each thread and w values are updated
           __syncthreads();
 
           if((i<n)&&(j<n)){
-            if((BLOCK_DIM_Y>5) && (BLOCK_DIM_X>5))
+            if((BLOCK_DIM_Y>=5) && (BLOCK_DIM_X>=5))
               getTheSpin(sharedGpart,newMat,  w_shared,n,lIndex_Y, lIndex_X,i,j,flag);
-            else
+            else //if((BLOCK_DIM_Y<5) && (BLOCK_DIM_X35))
               getTheSpin(sharedGpart,newMat,  w,n,lIndex_Y, lIndex_X,i,j,flag);
 
           }
 
           __syncthreads();
-          //return;
+
         }
       }
 
@@ -226,11 +230,12 @@ int gRowIndex,int gColIndex, int * flag ){
     }
   }
 
-  //Checking the conditions
+  //Checking the conditions in order to get the next state spin
   //  if (total ==0), with taking into account possible floating point errors
   if( (total<1e-6)  &&  (total>(-1e-6)) ){
     newLat[(gRowIndex)*n+(gColIndex)]=Lat[lRowIndex*(BLOCK_DIM_X+2*RADIUS)+lColIndex];
   }
+  //if change in a certain spot happens we update no change flag's value into 0.
   else if(total<0){
     //Checking if there is change in this certain spot
     if(Lat[lRowIndex*(BLOCK_DIM_X+2*RADIUS)+lColIndex]!=1)

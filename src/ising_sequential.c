@@ -1,6 +1,6 @@
 /*
 *       Parallels and Distributed Systems Exercise 3
-*       v0. Sequential version of Ising Model
+*       v0. Sequential version of Ising Model evolution
 *       Author:Michael Karatzas
 *       AEM:9137
 */
@@ -16,14 +16,14 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,i
 
 void ising( int *G, double *w, int k, int n){
 
-  //The second Matrix We use
+  //The second Matrix We use,allocating memory and check.
   int * secondG= (int *)malloc((size_t)sizeof(int)*n*n);
   if(!secondG){
     printf("Couldn't allocate memory!");
     exit(1);
   }
 
-  //Flag for indicate if there was no changes in the lattice during a step,in order to terminate the evolving.
+  //Flag for indicate if there was no changes in the lattice during a step,in order to terminate the evolution.
   int no_changes_flag;
 
   //Evolving the model for k steps
@@ -39,7 +39,7 @@ void ising( int *G, double *w, int k, int n){
 
     //If there are no changes in the lattice we stop evolving the model
     if(no_changes_flag){
-      //getting the actual steps happened to handle the memcpy bellow
+      //getting the actual steps happened to handle the memcpy after for loop
       k=i+1;
       break;
     }
@@ -67,16 +67,15 @@ void nextStateCalculation(int *Gptr,int *newMat, double * w , int n,int * flag){
   }
 
 }
-//Function that computes the next spin of a certain point
+//Function that computes the next spin of a certain point.
 void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,
   int colIndex, int *flag){
-  // int rowIndex= index/n;
-  // int colIndex= index%n;
+
 
   double total=0;
   int idxR,idxC;
 
-  //Calculating the Total influence for a certain spot.
+  //Calculating the Total neighbors' influence for a certain spot.
   for(int i=rowIndex-2;i<rowIndex+3;i++ ){
     for(int j=colIndex-2;j<colIndex+3;j++ ){
       if((i==rowIndex) && (j==colIndex))
@@ -93,16 +92,19 @@ void getTheSpin(int * Lat,int * newLat, double * weights , int n, int rowIndex,
   }
 
   //Checking the conditions in order to get the next state spin
-  //if (total ==0), with taking into account possible floating point errors
+  //if (total ==0),taking into account possible floating point errors
   if( (total<1e-6)  &&  (total>(-1e-6)) ){
     newLat[rowIndex*n+colIndex]=Lat[rowIndex*n+colIndex];
   }
+  //if change in a certain spot happens we update no change flag's value into 0.
   else if(total<0){
+    //Checking if there is change in this certain spot
     if(Lat[rowIndex*n+colIndex]!=-1)
       *flag=0;
     newLat[rowIndex*n+colIndex]=-1;
   }
   else if(total>0){
+    //Checking if there is change in this certain spot
     if(Lat[rowIndex*n+colIndex]!=1)
       *flag=0;
     newLat[rowIndex*n+colIndex]=1;
