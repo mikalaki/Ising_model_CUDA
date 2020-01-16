@@ -2,6 +2,9 @@
 A university project. See ising-cuda-assigment.pdf for more info
 about the project .
 
+The Code for the 4 versions is located in the /src folder.
+
+
 #How tester Works
 For test the programm's correctness , open folder /tester in a terminal.After :
 
